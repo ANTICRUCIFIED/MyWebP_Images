@@ -3,412 +3,382 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebP Image Manager</title>
+    <title>WebP Image Hosting Studio</title>
     <style>
         :root {
-            --bg-color: #121212;
-            --surface-color: #1e1e1e;
-            --primary-color: #00adb5;
-            --text-color: #eeeeee;
-            --border-color: #333333;
+            --bg-dark: #0f111a;
+            --surface: #171a26;
+            --surface-hover: #222738;
+            --primary: #00e5ff;
+            --primary-hover: #00b3cc;
+            --text-main: #f0f2f5;
+            --text-muted: #8a94a6;
+            --border: #2d334a;
+            --success: #00e676;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 0;
         }
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 40px 20px;
         }
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 24px;
+            margin-bottom: 32px;
         }
-        h1 { margin: 0; font-size: 24px; color: var(--primary-color); }
+        h1 { margin: 0; font-size: 26px; color: #fff; }
+        h1 span { color: var(--primary); }
+        .button-group { display: flex; gap: 12px; }
         button {
-            background-color: var(--primary-color);
-            color: #fff;
+            background-color: var(--primary);
+            color: #000;
             border: none;
-            padding: 10px 18px;
+            padding: 10px 20px;
             font-size: 14px;
+            font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
-            font-weight: 600;
-            transition: opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        button:hover { opacity: 0.9; }
         button.secondary {
             background-color: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            margin-right: 10px;
+            border: 1px solid var(--border);
+            color: var(--text-main);
         }
-        
-        /* View States */
+        button.secondary:hover { background-color: var(--surface-hover); }
         .view-panel { display: none; }
         .view-panel.active { display: block; }
-
-        /* Upload Panel */
-        .upload-card {
-            background-color: var(--surface-color);
-            border: 2px dashed var(--border-color);
+        .upload-wrapper { max-width: 600px; margin: 40px auto; }
+        .upload-box {
+            background-color: var(--surface);
+            border: 2px dashed var(--border);
             border-radius: 12px;
-            padding: 40px;
+            padding: 48px 24px;
             text-align: center;
-            margin-bottom: 20px;
-        }
-        .file-input { display: none; }
-        .upload-label {
             cursor: pointer;
-            color: var(--primary-color);
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 15px;
         }
-        .progress-bar {
-            height: 6px;
-            background: var(--border-color);
-            border-radius: 3px;
-            margin-top: 15px;
-            overflow: hidden;
-            display: none;
-        }
-        .progress-fill { height: 100%; background: var(--primary-color); width: 0%; transition: width 0.2s; }
-        .result-box {
-            background: #111;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 15px;
-            text-align: left;
-            display: none;
-        }
-        .result-box label { font-size: 12px; color: #888; font-weight: bold; display: block; margin-top: 10px; }
-        .result-box input {
-            width: 100%;
-            background: #222;
-            border: 1px solid var(--border-color);
-            color: #fff;
-            padding: 8px;
-            border-radius: 4px;
-            box-sizing: border-box;
-            margin-top: 4px;
-        }
-
-        /* Gallery Grid */
-        .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 25px;
-        }
-        .image-card {
-            background-color: var(--surface-color);
-            border: 1px solid var(--border-color);
+        .file-input-hidden { display: none; }
+        .status-container {
+            margin-top: 24px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 8px;
+            padding: 24px;
+            display: none;
+        }
+        .progress-bar-bg {
+            height: 6px;
+            background-color: var(--border);
+            border-radius: 3px;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            margin: 16px 0;
         }
-        .img-preview {
-            width: 100%;
-            height: 180px;
-            object-fit: cover;
-            background: #151515;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .card-details { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
-        .img-name { font-weight: bold; font-size: 14px; margin-bottom: 12px; word-break: break-all; }
-        .input-group { margin-bottom: 10px; }
-        .input-group label { font-size: 11px; color: #888; display: block; margin-bottom: 4px; text-transform: uppercase; }
-        .input-group div { display: flex; }
-        .input-group input {
+        .progress-bar-fill { height: 100%; background-color: var(--primary); width: 0%; transition: width 0.3s; }
+        .output-group { margin-top: 16px; }
+        .output-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
+        .output-field-wrapper { display: flex; gap: 8px; margin-bottom: 12px; }
+        .output-field-wrapper input {
             flex-grow: 1;
-            background: #111;
-            border: 1px solid var(--border-color);
-            color: #ccc;
-            padding: 6px;
-            font-size: 12px;
-            border-radius: 4px 0 0 4px;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 10px 12px;
+            font-family: monospace;
+            border-radius: 4px;
+            outline: none;
         }
-        .copy-btn {
-            background: #333;
-            border: 1px solid var(--border-color);
-            border-left: none;
-            padding: 0 10px;
-            font-size: 11px;
-            border-radius: 0 4px 4px 0;
-            cursor: pointer;
-        }
-        .copy-btn:hover { background: #444; }
-        
-        .no-images { text-align: center; color: #666; padding: 40px; grid-column: 1/-1; }
+        .mini-copy-btn { background-color: var(--surface-hover); border: 1px solid var(--border); color: var(--text-main); padding: 0 14px; border-radius: 4px; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+        .gallery-card { background-color: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+        .preview-frame { width: 100%; height: 180px; background-color: #090a0f; display: flex; align-items: center; justify-content: center; }
+        .preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .card-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .file-metadata-name { font-size: 14px; font-weight: 600; color: #fff; }
+        .status-msg { text-align: center; color: var(--text-muted); padding: 60px 20px; grid-column: 1 / -1; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1 id="repo-title">WebP Image Manager</h1>
-        <div>
-            <button id="download-sheet-btn" class="secondary">⬇️ Download Sheet</button>
-            <button id="action-btn">➕ Upload Image</button>
+        <h1>WebP Hosting <span>Dashboard</span></h1>
+        <div class="button-group">
+            <button id="nav-download-btn" class="secondary">🗂️ Download Inventory Sheet</button>
+            <button id="nav-action-btn">✨ Upload Image</button>
         </div>
     </header>
 
-    <div id="gallery-panel" class="view-panel active">
-        <div class="gallery-grid" id="gallery-grid">
-            <div class="no-images">Loading images from your GitHub repository...</div>
+    <div id="panel-gallery" class="view-panel active">
+        <div class="gallery-grid" id="ui-gallery-grid">
+            <div class="status-msg">Connecting to GitHub file pipeline...</div>
         </div>
     </div>
 
-    <div id="upload-panel" class="view-panel">
-        <div class="upload-card">
-            <label for="file-picker" class="upload-label">Click here to choose a JPG or PNG image</label>
-            <input type="file" id="file-picker" class="file-input" accept="image/png, image/jpeg, image/jpg">
-            <div id="selected-file-name" style="color: #888;"></div>
-            
-            <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-            
-            <div class="result-box" id="result-box">
-                <p style="color: #4caf50; margin-top:0; font-weight:bold;">✓ Upload Complete!</p>
-                <p style="font-size:12px; color:#aaa; margin-bottom:15px;">GitHub automation is now creating your .webp copy. It will appear in the gallery in ~30 seconds.</p>
-                
-                <label>Direct WebP Public Link:</label>
-                <input type="text" id="res-link" readonly>
-                
-                <label>HTML Source Code:</label>
-                <input type="text" id="res-src" readonly>
+    <div id="panel-upload" class="view-panel">
+        <div class="upload-wrapper">
+            <div class="upload-box" id="drop-zone">
+                <span style="font-size:48px; display:block; margin-bottom:16px;">☁️</span>
+                <p id="upload-instruction-text">Select or drop a standard JPG, JPEG, or PNG asset</p>
+                <button type="button" class="secondary">Browse Local Files</button>
+                <input type="file" id="binary-file-selector" class="file-input-hidden" accept="image/png, image/jpeg, image/jpg">
             </div>
-            
-            <div style="margin-top: 30px;">
-                <button id="upload-more-btn" style="display:none;">🔄 Upload More</button>
-                <button id="exit-btn" class="secondary">🚪 Exit / View Gallery</button>
+
+            <div class="status-container" id="upload-status-card">
+                <div id="status-title-msg" style="font-weight: 600; margin-bottom: 4px;">Preparing payload...</div>
+                <div id="status-sub-msg" style="font-size: 13px; color: var(--text-muted);">Syncing parameters.</div>
+                <div class="progress-bar-bg"><div class="progress-bar-fill" id="ui-progress-fill"></div></div>
+
+                <div class="output-group" id="success-outputs" style="display: none;">
+                    <div style="color: var(--success); font-weight:600; margin-bottom:16px;">✓ Asset safely uploaded to repository!</div>
+                    <label>Direct CDN WebP Link</label>
+                    <div class="output-field-wrapper">
+                        <input type="text" id="out-link" readonly>
+                        <button class="mini-copy-btn" onclick="directCopy('out-link')">Copy</button>
+                    </div>
+                    <label>HTML Implementation Source</label>
+                    <div class="output-field-wrapper">
+                        <input type="text" id="out-html" readonly>
+                        <button class="mini-copy-btn" onclick="directCopy('out-html')">Copy</button>
+                    </div>
+                </div>
+                <div class="button-group" style="margin-top: 24px; justify-content: flex-end;">
+                    <button id="btn-upload-more" class="secondary" style="display: none;">Upload Another</button>
+                    <button id="btn-exit-view">Go to Gallery View</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // CONFIGURATION
-    const GITHUB_TOKEN = "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"; 
+    // SECURE LOCAL MEMORY VAULT RESOLVER (Bypasses GitHub's Scanning blocks)
+    const CORE_TOKEN = localStorage.getItem('WEBP_STUDIO_PAT') || prompt("Please input your active GitHub Personal Access Token (PAT):");
+    if (CORE_TOKEN) { localStorage.setItem('WEBP_STUDIO_PAT', CORE_TOKEN); }
+
     const REPO_OWNER = "ANTICRUCIFIED";
     const REPO_NAME = "MyWebP_Images";
-    const BRANCH = "main";
-    
-    // BASE URL FORMULA
-    const BASE_CDN_URL = `https://${REPO_OWNER.toLowerCase()}.github.io/${REPO_NAME}/images/`;
+    const DEFAULT_BRANCH = "main";
+    const CDN_ORIGIN_PREFIX = `https://${REPO_OWNER.toLowerCase()}.github.io/${REPO_NAME}/images/`;
 
-    // DOM ELEMENTS
-    const galleryPanel = document.getElementById('gallery-panel');
-    const uploadPanel = document.getElementById('upload-panel');
-    const actionBtn = document.getElementById('action-btn');
-    const exitBtn = document.getElementById('exit-btn');
-    const uploadMoreBtn = document.getElementById('upload-more-btn');
-    const downloadSheetBtn = document.getElementById('download-sheet-btn');
-    const filePicker = document.getElementById('file-picker');
-    const galleryGrid = document.getElementById('gallery-grid');
-    const progressBar = document.getElementById('progress-bar');
-    const progressFill = document.getElementById('progress-fill');
-    const resultBox = document.getElementById('result-box');
-    const selectedFileName = document.getElementById('selected-file-name');
+    const panelGallery = document.getElementById('panel-gallery');
+    const panelUpload = document.getElementById('panel-upload');
+    const navActionBtn = document.getElementById('nav-action-btn');
+    const navDownloadBtn = document.getElementById('nav-download-btn');
+    const dropZone = document.getElementById('drop-zone');
+    const fileSelector = document.getElementById('binary-file-selector');
+    const uploadStatusCard = document.getElementById('upload-status-card');
+    const uiProgressFill = document.getElementById('ui-progress-fill');
+    const statusTitleMsg = document.getElementById('status-title-msg');
+    const statusSubMsg = document.getElementById('status-sub-msg');
+    const successOutputs = document.getElementById('success-outputs');
+    const btnUploadMore = document.getElementById('btn-upload-more');
+    const btnExitView = document.getElementById('btn-exit-view');
+    const uiGalleryGrid = document.getElementById('ui-gallery-grid');
 
-    let allImages = [];
+    let cacheAssetArray = [];
 
-    // VIEW ROUTING CONTROLS
-    actionBtn.addEventListener('click', () => {
-        if(galleryPanel.classList.contains('active')) {
-            switchView('upload');
-        } else {
-            handleUpload();
-        }
+    navActionBtn.addEventListener('click', () => {
+        if (panelGallery.classList.contains('active')) { toggleActiveView('upload'); } 
+        else { initiateBinaryUploadPipeline(); }
+    });
+    btnExitView.addEventListener('click', () => { toggleActiveView('gallery'); fetchActiveRepositoryAssets(); });
+    btnUploadMore.addEventListener('click', clearUploadWorkflowState);
+    dropZone.addEventListener('click', () => fileSelector.click());
+    fileSelector.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) document.getElementById('upload-instruction-text').innerText = `Target Selected: ${e.target.files[0].name}`;
     });
 
-    exitBtn.addEventListener('click', () => {
-        switchView('gallery');
-        loadGallery();
-    });
-
-    uploadMoreBtn.addEventListener('click', resetUploadForm);
-
-    function switchView(view) {
-        if(view === 'upload') {
-            galleryPanel.classList.remove('active');
-            uploadPanel.classList.add('active');
-            actionBtn.innerText = "🚀 Confirm Upload";
-            resetUploadForm();
+    function toggleActiveView(targetPanel) {
+        if (targetPanel === 'upload') {
+            panelGallery.classList.remove('active');
+            panelUpload.classList.add('active');
+            navActionBtn.innerText = "🚀 Confirm Live Upload";
+            clearUploadWorkflowState();
         } else {
-            uploadPanel.classList.remove('active');
-            galleryPanel.classList.add('active');
-            actionBtn.innerText = "➕ Upload Image";
+            panelUpload.classList.remove('active');
+            panelGallery.classList.add('active');
+            navActionBtn.innerText = "✨ Upload Image";
         }
     }
 
-    function resetUploadForm() {
-        filePicker.value = "";
-        selectedFileName.innerText = "";
-        progressBar.style.display = 'none';
-        progressFill.style.width = '0%';
-        resultBox.style.display = 'none';
-        uploadMoreBtn.style.display = 'none';
-        actionBtn.style.display = 'inline-block';
+    function clearUploadWorkflowState() {
+        fileSelector.value = "";
+        uploadStatusCard.style.display = 'none';
+        successOutputs.style.display = 'none';
+        btnUploadMore.style.display = 'none';
+        navActionBtn.style.display = 'inline-flex';
+        dropZone.style.display = 'block';
+        uiProgressFill.style.width = '0%';
+        document.getElementById('upload-instruction-text').innerText = "Select or drop a standard JPG, JPEG, or PNG asset";
     }
 
-    filePicker.addEventListener('change', (e) => {
-        if(e.target.files.length > 0) {
-            selectedFileName.innerText = `Selected: ${e.target.files[0].name}`;
+    async function initiateBinaryUploadPipeline() {
+        const fileList = fileSelector.files;
+        if (!CORE_TOKEN || fileList.length === 0) { 
+            alert("Token missing or file packet unselected."); 
+            return; 
         }
-    });
+        
+        const primaryFile = fileList[0];
+        navActionBtn.style.display = 'none';
+        dropZone.style.display = 'none';
+        uploadStatusCard.style.display = 'block';
+        uiProgressFill.style.width = '30%';
 
-    // UPLOAD EXECUTION TO GITHUB API
-    async function handleUpload() {
-        const file = filePicker.files[0];
-        if (!file) {
-            alert("Please pick an image file first.");
-            return;
-        }
+        const clearFilename = primaryFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        // NOTE: Keeping your defined endpoint structure unchanged as requested
+        const endpointTargetUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/images/${clearFilename}`;
 
-        actionBtn.style.display = 'none';
-        progressBar.style.display = 'block';
-        progressFill.style.width = '50%';
+        const fileReaderInstance = new FileReader();
+        fileReaderInstance.readAsDataURL(primaryFile);
+        fileReaderInstance.onerror = () => {
+            alert("File stream mapping failed.");
+            clearUploadWorkflowState();
+        };
 
-        // Sanitize filename to prevent directory escaping
-        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const uploadPath = `images/${safeName}`;
+        fileReaderInstance.onload = async () => {
+            const base64DataPayload = fileReaderInstance.result.split(',')[1];
+            uiProgressFill.style.width = '60%';
 
-        // Convert file to Base64 required by GitHub API
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-            const base64Content = reader.result.split(',')[1];
             try {
-                const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${uploadPath}`, {
+                const apiNetworkInvocation = await fetch(endpointTargetUrl, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Authorization': `Bearer ${CORE_TOKEN}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: `Upload raw image: ${safeName}`,
-                        content: base64Content,
-                        branch: BRANCH
+                        message: `Upload asset payload via Dashboard (${clearFilename})`,
+                        content: base64DataPayload,
+                        branch: DEFAULT_BRANCH
                     })
                 });
 
-                if(response.ok) {
-                    progressFill.style.width = '100%';
-                    // Generate projected outputs
-                    const nameWithoutExtension = safeName.substring(0, safeName.lastIndexOf('.'));
-                    const projectedWebPUrl = `${BASE_CDN_URL}${nameWithoutExtension}.webp`;
-                    const projectedHtml = `<img src="${projectedWebPUrl}" alt="${nameWithoutExtension}">`;
+                if (apiNetworkInvocation.ok) {
+                    uiProgressFill.style.width = '100%';
+                    statusTitleMsg.innerText = "Upload Complete!";
+                    statusSubMsg.innerText = "GitHub Actions is converting this file to WebP in the background (~30s).";
                     
-                    document.getElementById('res-link').value = projectedWebPUrl;
-                    document.getElementById('res-src').value = projectedHtml;
-                    resultBox.style.display = 'block';
-                    uploadMoreBtn.style.display = 'inline-block';
+                    const baselineStrippedName = clearFilename.substring(0, clearFilename.lastIndexOf('.'));
+                    const projectedWebpLink = `${CDN_ORIGIN_PREFIX}${baselineStrippedName}.webp`;
+                    
+                    document.getElementById('out-link').value = projectedWebpLink;
+                    document.getElementById('out-html').value = `<img src="${projectedWebpLink}" alt="${baselineStrippedName}">`;
+                    
+                    successOutputs.style.display = 'block';
+                    btnUploadMore.style.display = 'inline-flex';
                 } else {
-                    const errData = await response.json();
-                    alert(`Upload failed: ${errData.message}`);
-                    actionBtn.style.display = 'inline-block';
+                    const errRes = await apiNetworkInvocation.json();
+                    alert(`API Error: ${errRes.message}`);
+                    clearUploadWorkflowState();
                 }
-            } catch (error) {
-                alert("Network error occurred during execution.");
-                actionBtn.style.display = 'inline-block';
+            } catch (err) { 
+                alert("Transmission failure."); 
+                clearUploadWorkflowState(); 
             }
         };
     }
 
-    // LOAD AND RENDER IMAGES FROM GITHUB
-    async function loadGallery() {
+    async function fetchActiveRepositoryAssets() {
+        uiGalleryGrid.innerHTML = `<div class="status-msg">Scanning active file arrays inside GitHub repository...</div>`;
+        if (!CORE_TOKEN) return;
+
+        const scanUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/images?ref=${DEFAULT_BRANCH}`;
+
         try {
-            const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/images?ref=${BRANCH}`, {
-                headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+            const apiFetchDirectoryRegistry = await fetch(scanUrl, {
+                headers: { 'Authorization': `Bearer ${CORE_TOKEN}` }
             });
-            if(!response.ok) throw new Error("Could not fetch repo directory listing.");
-            
-            const files = await response.json();
-            // Filter strictly for compiled webp images
-            allImages = files.filter(f => f.name.toLowerCase().endsWith('.webp'));
-            
-            if(allImages.length === 0) {
-                galleryGrid.innerHTML = `<div class="no-images">No .webp files generated yet. Upload an image to start!</div>`;
+
+            if (apiFetchDirectoryRegistry.status === 404) {
+                uiGalleryGrid.innerHTML = `<div class="status-msg">The 'images' folder is empty.<br><span style="font-size:13px; color:var(--text-muted);">Upload your first image asset to generate file loops!</span></div>`;
                 return;
             }
-            
-            galleryGrid.innerHTML = "";
-            allImages.forEach((img, index) => {
-                const imgUrl = `${BASE_CDN_URL}${img.name}`;
-                const nameWithoutExt = img.name.split('.')[0];
-                const htmlSrc = `<img src="${imgUrl}" alt="${nameWithoutExt}">`;
-                
+
+            const fullFilePayloadArray = await apiFetchDirectoryRegistry.json();
+            cacheAssetArray = fullFilePayloadArray.filter(item => item.name.toLowerCase().endsWith('.webp'));
+
+            if (cacheAssetArray.length === 0) {
+                uiGalleryGrid.innerHTML = `<div class="status-msg">No active pipeline assets compiled yet.<br><span style="font-size:13px; color:var(--text-muted);">GitHub actions is processing updates. Refresh in a few seconds!</span></div>`;
+                return;
+            }
+
+            uiGalleryGrid.innerHTML = "";
+            cacheAssetArray.forEach((assetItem, idx) => {
+                const compileCdnTargetLink = `${CDN_ORIGIN_PREFIX}${assetItem.name}`;
+                const compileHtmlImgSource = `<img src="${compileCdnTargetLink}" alt="${assetItem.name.split('.')[0]}">`;
+
                 const card = document.createElement('div');
-                card.className = 'image-card';
+                card.className = 'gallery-card';
                 card.innerHTML = `
-                    <img class="img-preview" src="${imgUrl}" alt="${nameWithoutExt}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\' viewBox=\\'0 0 100 100\\'><text y=\\'50%\\' x=\\'50%\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' fill=\\'%23666\\'>Processing...</text></svg>'">
-                    <div class="card-details">
-                        <div class="img-name">${img.name}</div>
-                        <div class="input-group">
-                            <label>Public Link</label>
-                            <div>
-                                <input type="text" id="link-${index}" value="${imgUrl}" readonly>
-                                <button class="copy-btn" onclick="copyText('link-${index}')">Copy</button>
-                            </div>
-                        </div>
-                        <div class="input-group">
-                            <label>HTML Source</label>
-                            <div>
-                                <input type="text" id="html-${index}" value="${htmlSrc.replace(/"/g, '&quot;')}" readonly>
-                                <button class="copy-btn" onclick="copyText('html-${index}')">Copy</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                galleryGrid.appendChild(card);
+                    <div class="preview-frame"> 
+                        <img class="preview-img" src="${compileCdnTargetLink}" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org\\' width=\\'100%\\' height=\\'100%\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%23090a0f\\'/><text x=\\'50%\\' y=\\'50%\\' font-family=\\'sans-serif\\' font-size=\\'13\\' fill=\\'%234a526d\\' text-anchor=\\'middle\\'>Compiling WebP...</text></svg>'"> 
+                    </div> 
+                    <div class="card-body"> 
+                        <div class="file-metadata-name" title="${assetItem.name}">${assetItem.name}</div> 
+                        <div class="output-group"> 
+                            <label>CDN WebP Target Link</label> 
+                            <div class="output-field-wrapper"> 
+                                <input type="text" value="${compileCdnTargetLink}" readonly id="lnk-${idx}"> 
+                                <button class="mini-copy-btn" onclick="directCopy('lnk-${idx}')">Copy</button> 
+                            </div> 
+                        </div> 
+                        <div class="output-group"> 
+                            <label>Website HTML Source</label> 
+                            <div class="output-field-wrapper"> 
+                                <input type="text" value='${compileHtmlImgSource}' readonly id="src-${idx}"> 
+                                <button class="mini-copy-btn" onclick="directCopy('src-${idx}')">Copy</button> 
+                            </div> 
+                        </div> 
+                    </div>`;
+                uiGalleryGrid.appendChild(card);
             });
-        } catch (e) {
-            galleryGrid.innerHTML = `<div class="no-images">Error fetching elements. Check your API settings.</div>`;
+        } catch (err) { 
+            uiGalleryGrid.innerHTML = `<div class="status-msg" style="color:#ff5252">Critical validation failure parsing elements.</div>`; 
         }
     }
 
-    // HELPER UI UTILITIES
-    window.copyText = function(id) {
-        const input = document.getElementById(id);
-        input.select();
-        document.execCommand('copy');
-        alert("Copied to clipboard!");
-    }
-
-    // DOWNLOAD TSV/CSV DATA SHEET
-    downloadSheetBtn.addEventListener('click', () => {
-        if(allImages.length === 0) {
-            alert("No processed assets to export yet.");
-            return;
+    window.directCopy = function(id) {
+        const node = document.getElementById(id);
+        if (node) {
+            node.select();
+            navigator.clipboard.writeText(node.value).then(() => alert("Copied to clipboard!"));
         }
-        let csvContent = "Image Name,Public Link,HTML Image Source\n";
-        allImages.forEach(img => {
-            const imgUrl = `${BASE_CDN_URL}${img.name}`;
-            const htmlSrc = `<img src="${imgUrl}" alt="${img.name.split('.')[0]}">`;
-            const line = `"${img.name}","${imgUrl}","${htmlSrc.replace(/"/g, '""')}"`;
-            csvContent += line + "\n";
+    };
+
+    navDownloadBtn.addEventListener('click', () => {
+        if (cacheAssetArray.length === 0) { 
+            alert("No target metadata compiled."); 
+            return; 
+        }
+        let csv = "Asset Label,WebP Public CDN URL,HTML Implementation Block\n";
+        cacheAssetArray.forEach(asset => {
+            const lnk = `${CDN_ORIGIN_PREFIX}${asset.name}`;
+            csv += `"${asset.name}","${lnk}","<img src='${lnk}' alt='${asset.name.split('.')[0]}'>"\n`;
         });
-        
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "webp_images_inventory.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "webp_image_hosting_inventory.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     });
 
-    // Run layout pull on initial browser mount
-    loadGallery();
+    fetchActiveRepositoryAssets();
 </script>
 </body>
 </html>
