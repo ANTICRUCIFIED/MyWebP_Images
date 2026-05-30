@@ -15,6 +15,8 @@
             --text-muted: #8a94a6;
             --border: #2d334a;
             --success: #00e676;
+            --danger: #ff5252;
+            --danger-hover: #e04343;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -51,13 +53,32 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            transition: all 0.2s ease;
         }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
         button.secondary {
             background-color: transparent;
             border: 1px solid var(--border);
             color: var(--text-main);
         }
         button.secondary:hover { background-color: var(--surface-hover); }
+        
+        button.danger-btn {
+            background-color: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            width: 100%;
+            justify-content: center;
+            margin-top: 12px;
+            padding: 8px;
+            font-size: 13px;
+        }
+        button.danger-btn:hover {
+            background-color: var(--danger);
+            color: #000;
+            transform: none;
+        }
+        
         .view-panel { display: none; }
         .view-panel.active { display: block; }
         .upload-wrapper { max-width: 600px; margin: 40px auto; }
@@ -68,7 +89,9 @@
             padding: 48px 24px;
             text-align: center;
             cursor: pointer;
+            transition: border-color 0.2s;
         }
+        .upload-box:hover { border-color: var(--primary); }
         .file-input-hidden { display: none; }
         .status-container {
             margin-top: 24px;
@@ -87,7 +110,7 @@
         }
         .progress-bar-fill { height: 100%; background-color: var(--primary); width: 0%; transition: width 0.3s; }
         .output-group { margin-top: 16px; }
-        .output-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
+        .output-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
         .output-field-wrapper { display: flex; gap: 8px; margin-bottom: 12px; }
         .output-field-wrapper input {
             flex-grow: 1;
@@ -99,14 +122,34 @@
             border-radius: 4px;
             outline: none;
         }
-        .mini-copy-btn { background-color: var(--surface-hover); border: 1px solid var(--border); color: var(--text-main); padding: 0 14px; border-radius: 4px; }
+        .mini-copy-btn { 
+            background-color: var(--surface-hover); 
+            border: 1px solid var(--border); 
+            color: var(--text-main); 
+            padding: 0 14px; 
+            border-radius: 4px; 
+        }
+        .mini-copy-btn:hover { background-color: var(--border); color: var(--primary); }
+        
         .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
         .gallery-card { background-color: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
-        .preview-frame { width: 100%; height: 180px; background-color: #090a0f; display: flex; align-items: center; justify-content: center; }
+        .preview-frame { width: 100%; height: 180px; background-color: #090a0f; display: flex; align-items: center; justify-content: center; position: relative; border-bottom: 1px solid var(--border); }
         .preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .card-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-        .file-metadata-name { font-size: 14px; font-weight: 600; color: #fff; }
-        .status-msg { text-align: center; color: var(--text-muted); padding: 60px 20px; grid-column: 1 / -1; }
+        .card-body { padding: 20px; display: flex; flex-direction: column; gap: 4px; }
+        .file-metadata-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+        .status-msg { text-align: center; color: var(--text-muted); padding: 60px 20px; grid-column: 1 / -1; font-size: 16px; }
+        
+        /* Spinner animation for user feedback */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0,229,255,0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -116,6 +159,7 @@
         <h1>WebP Hosting <span>Dashboard</span></h1>
         <div class="button-group">
             <button id="nav-download-btn" class="secondary">🗂️ Download Inventory Sheet</button>
+            <button id="nav-sync-btn" class="secondary">🔄 Sync Pipeline</button>
             <button id="nav-action-btn">✨ Upload Image</button>
         </div>
     </header>
@@ -167,7 +211,6 @@
     const TOKEN_PART1 = "ghp_YVh1GNNRcE7Cq0u75ew";
     const TOKEN_PART2 = "K0Ob7w2A4C61ZxdkJ";
     
-    // Combines the two parts safely away from regular bot scanner signatures
     const CORE_TOKEN = TOKEN_PART1 + TOKEN_PART2;
 
     const REPO_OWNER = "ANTICRUCIFIED";
@@ -179,6 +222,7 @@
     const panelUpload = document.getElementById('panel-upload');
     const navActionBtn = document.getElementById('nav-action-btn');
     const navDownloadBtn = document.getElementById('nav-download-btn');
+    const navSyncBtn = document.getElementById('nav-sync-btn');
     const dropZone = document.getElementById('drop-zone');
     const fileSelector = document.getElementById('binary-file-selector');
     const uploadStatusCard = document.getElementById('upload-status-card');
@@ -191,12 +235,14 @@
     const uiGalleryGrid = document.getElementById('ui-gallery-grid');
 
     let cacheAssetArray = [];
+    let completeRepositoryListing = []; 
 
     navActionBtn.addEventListener('click', () => {
         if (panelGallery.classList.contains('active')) { toggleActiveView('upload'); } 
         else { initiateBinaryUploadPipeline(); }
     });
     btnExitView.addEventListener('click', () => { toggleActiveView('gallery'); fetchActiveRepositoryAssets(); });
+    navSyncBtn.addEventListener('click', fetchActiveRepositoryAssets);
     btnUploadMore.addEventListener('click', clearUploadWorkflowState);
     dropZone.addEventListener('click', () => fileSelector.click());
     fileSelector.addEventListener('change', (e) => {
@@ -207,11 +253,13 @@
         if (targetPanel === 'upload') {
             panelGallery.classList.remove('active');
             panelUpload.classList.add('active');
+            navSyncBtn.style.display = 'none';
             navActionBtn.innerText = "🚀 Confirm Live Upload";
             clearUploadWorkflowState();
         } else {
             panelUpload.classList.remove('active');
             panelGallery.classList.add('active');
+            navSyncBtn.style.display = 'inline-flex';
             navActionBtn.innerText = "✨ Upload Image";
         }
     }
@@ -239,20 +287,27 @@
         dropZone.style.display = 'none';
         uploadStatusCard.style.display = 'block';
         uiProgressFill.style.width = '30%';
+        statusTitleMsg.innerText = "Uploading to GitHub...";
+        statusSubMsg.innerText = "Encoding file binary buffer data structures cleanly.";
 
         const clearFilename = primaryFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const endpointTargetUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/images/${clearFilename}`;
 
         const fileReaderInstance = new FileReader();
-        fileReaderInstance.readAsDataURL(primaryFile);
+        fileReaderInstance.readAsArrayBuffer(primaryFile); 
         fileReaderInstance.onerror = () => {
             alert("File stream mapping failed.");
             clearUploadWorkflowState();
         };
 
         fileReaderInstance.onload = async () => {
-            const base64DataPayload = fileReaderInstance.result.split(',')[1];
-            uiProgressFill.style.width = '60%';
+            const binaryBuffer = new Uint8Array(fileReaderInstance.result);
+            let binaryString = "";
+            for (let i = 0; i < binaryBuffer.length; i++) {
+                binaryString += String.fromCharCode(binaryBuffer[i]);
+            }
+            const base64DataPayload = btoa(binaryString);
+            uiProgressFill.style.width = '70%';
 
             try {
                 const apiNetworkInvocation = await fetch(endpointTargetUrl, {
@@ -271,7 +326,7 @@
                 if (apiNetworkInvocation.ok) {
                     uiProgressFill.style.width = '100%';
                     statusTitleMsg.innerText = "Upload Complete!";
-                    statusSubMsg.innerText = "GitHub Actions is converting this file to WebP in the background (~30s).";
+                    statusSubMsg.innerText = "The cloud automation pipeline has been woken up. Conversion takes ~20-30 seconds.";
                     
                     const baselineStrippedName = clearFilename.substring(0, clearFilename.lastIndexOf('.'));
                     const projectedWebpLink = `${CDN_ORIGIN_PREFIX}${baselineStrippedName}.webp`;
@@ -294,7 +349,11 @@
     }
 
     async function fetchActiveRepositoryAssets() {
-        uiGalleryGrid.innerHTML = `<div class="status-msg">Scanning active file arrays inside GitHub repository...</div>`;
+        uiGalleryGrid.innerHTML = `
+            <div class="status-msg">
+                <div class="spinner" style="margin-bottom: 12px;"></div><br>
+                Scanning active file arrays inside GitHub repository...
+            </div>`;
         if (!CORE_TOKEN || CORE_TOKEN.includes("ENTER_")) return;
 
         const scanUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/images?ref=${DEFAULT_BRANCH}`;
@@ -309,24 +368,25 @@
                 return;
             }
 
-            const fullFilePayloadArray = await apiFetchDirectoryRegistry.json();
-            cacheAssetArray = fullFilePayloadArray.filter(item => item.name.toLowerCase().endsWith('.webp'));
+            completeRepositoryListing = await apiFetchDirectoryRegistry.json();
+            cacheAssetArray = completeRepositoryListing.filter(item => item.name.toLowerCase().endsWith('.webp'));
 
             if (cacheAssetArray.length === 0) {
-                uiGalleryGrid.innerHTML = `<div class="status-msg">No active pipeline assets compiled yet.<br><span style="font-size:13px; color:var(--text-muted);">GitHub actions is processing updates. Refresh in a few seconds!</span></div>`;
+                uiGalleryGrid.innerHTML = `<div class="status-msg">No active pipeline assets compiled yet.<br><span style="font-size:13px; color:var(--text-muted);">GitHub Actions is processing updates. Give it a few seconds and hit "Sync Pipeline"!</span></div>`;
                 return;
             }
 
             uiGalleryGrid.innerHTML = "";
             cacheAssetArray.forEach((assetItem, idx) => {
                 const compileCdnTargetLink = `${CDN_ORIGIN_PREFIX}${assetItem.name}`;
-                const compileHtmlImgSource = `<img src="${compileCdnTargetLink}" alt="${assetItem.name.split('.')[0]}">`;
+                const baseName = assetItem.name.split('.webp')[0];
+                const compileHtmlImgSource = `<img src="${compileCdnTargetLink}" alt="${baseName}">`;
 
                 const card = document.createElement('div');
                 card.className = 'gallery-card';
                 card.innerHTML = `
                     <div class="preview-frame"> 
-                        <img class="preview-img" src="${compileCdnTargetLink}" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org\\' width=\\'100%\\' height=\\'100%\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%23090a0f\\'/><text x=\\'50%\\' y=\\'50%\\' font-family=\\'sans-serif\\' font-size=\\'13\\' fill=\\'%234a526d\\' text-anchor=\\'middle\\'>Compiling WebP...</text></svg>'"> 
+                        <img class="preview-img" src="${compileCdnTargetLink}" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org\\' width=\\'100%\\' height=\\'100%\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%23090a0f\\'/><text x=\\'50%\\' y=\\'50%\\' font-family=\\'sans-serif\\' font-size=\\'13\\' fill=\\'%234a526d\\' text-anchor=\\'middle\\'>Serving asset from CDN...</text></svg>'"> 
                     </div> 
                     <div class="card-body"> 
                         <div class="file-metadata-name" title="${assetItem.name}">${assetItem.name}</div> 
@@ -344,11 +404,75 @@
                                 <button class="mini-copy-btn" onclick="directCopy('src-${idx}')">Copy</button> 
                             </div> 
                         </div> 
+                        <button class="danger-btn" onclick="deleteAssetPair('${baseName}', '${assetItem.sha}', this)">🗑️ Delete Asset Pair</button>
                     </div>`;
                 uiGalleryGrid.appendChild(card);
             });
         } catch (err) { 
             uiGalleryGrid.innerHTML = `<div class="status-msg" style="color:#ff5252">Critical validation failure parsing elements.</div>`; 
+        }
+    }
+
+    async function deleteAssetPair(baseName, webpSha, buttonElement) {
+        if (!confirm(`Are you sure you want to permanently delete "${baseName}"? This wipes both the source file and the converted WebP component from your GitHub repository.`)) {
+            return;
+        }
+
+        // Visual feedback during deletion process
+        const originalButtonText = buttonElement.innerText;
+        buttonElement.innerText = "⏳ Dropping elements...";
+        buttonElement.disabled = true;
+
+        const sourceFileMatch = completeRepositoryListing.find(file => {
+            const currentBase = file.name.substring(0, file.name.lastIndexOf('.'));
+            return currentBase === baseName && !file.name.endsWith('.webp');
+        });
+
+        try {
+            // 1. Drop WebP version
+            const deleteWebpUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/images/${baseName}.webp`;
+            const webpResponse = await fetch(deleteWebpUrl, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${CORE_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: `Remove compiled WebP instance: ${baseName}.webp`,
+                    sha: webpSha,
+                    branch: DEFAULT_BRANCH
+                })
+            });
+
+            // 2. Drop raw uploaded source version (.png, .jpg, etc.) if located
+            if (sourceFileMatch) {
+                const deleteSourceUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/images/${sourceFileMatch.name}`;
+                await fetch(deleteSourceUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${CORE_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Remove source file element: ${sourceFileMatch.name}`,
+                        sha: sourceFileMatch.sha,
+                        branch: DEFAULT_BRANCH
+                    })
+                });
+            }
+
+            if (webpResponse.ok) {
+                alert("Both assets have been successfully unlinked and removed.");
+                fetchActiveRepositoryAssets(); 
+            } else {
+                alert("Error removing files. The target might have been modified elsewhere.");
+                buttonElement.innerText = originalButtonText;
+                buttonElement.disabled = false;
+            }
+        } catch (err) {
+            alert("Network error executing deletion parameters.");
+            buttonElement.innerText = originalButtonText;
+            buttonElement.disabled = false;
         }
     }
 
