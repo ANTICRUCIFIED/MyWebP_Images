@@ -1,0 +1,55 @@
+name: Auto Convert to WebP
+
+on:
+  push:
+    paths:
+      - 'images/**'
+
+permissions:
+  contents: write
+
+jobs:
+  convert-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install WebP Tools
+        run: sudo apt-get update && sudo apt-get install -y webp
+
+      - name: Convert Images
+        run: |
+          # Enable case-insensitive matching for extensions
+          shopt -s nocaseglob
+          
+          for file in images/*.{jpg,jpeg,png}; do
+            # Skip if no matching files found
+            [ -e "$file" ] || continue
+            
+            filename="${file%.*}"
+            webp_file="${filename}.webp"
+
+            if [ ! -f "$webp_file" ]; then
+              echo "Converting $file to $webp_file..."
+              cwebp -q 80 "$file" -o "$webp_file"
+              # Optional: Remove the '#' on the line below to delete original files
+              # rm "$file" 
+            fi
+          done
+
+      - name: Commit WebP Files
+        run: |
+          git config --global user.name "WebP Bot"
+          git config --global user.email "bot@://github.com"
+          
+          # Stage new webp files and any deletions
+          git add images/
+          
+          # Only commit and push if changes exist
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-generated WebP images"
+            git push
+          else
+            echo "No new images to convert."
+          fi
